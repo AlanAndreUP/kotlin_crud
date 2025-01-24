@@ -8,12 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.actividad1.myapplication.api.models.Car
 import com.actividad1.myapplication.api.ApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.awaitResponse
 
 @Composable
@@ -102,6 +104,7 @@ fun AddEditCarModal(
     onSave: () -> Unit
 ) {
     var placa by remember { mutableStateOf(car?.placa ?: "") }
+    var originalPlaca by remember { mutableStateOf(car?.placa ?: "") }
     var modelo by remember { mutableStateOf(car?.modelo ?: "") }
     var chofer by remember { mutableStateOf(car?.chofer ?: "") }
     var activo by remember { mutableStateOf(car?.activo ?: true) }
@@ -121,19 +124,27 @@ fun AddEditCarModal(
                             innerTextField = innerTextField,
                             enabled = true,
                             singleLine = true,
-                            visualTransformation = TODO(),
+                            visualTransformation = VisualTransformation.None,
                             interactionSource = remember { MutableInteractionSource() },
                             isError = false,
-                            label = TODO(),
-                            placeholder = TODO(),
-                            leadingIcon = TODO(),
-                            trailingIcon = TODO(),
-                            prefix = TODO(),
-                            suffix = TODO(),
-                            supportingText = TODO(),
+                            label = { Text("Placa") },
+                            placeholder = null,
+                            leadingIcon = null,
+                            trailingIcon = null,
+                            prefix = null,
+                            suffix = null,
+                            supportingText = null,
                             colors = TextFieldDefaults.outlinedTextFieldColors(),
-                            contentPadding = TODO(),
-                            container = TODO(),
+                            contentPadding = PaddingValues(8.dp),
+                            container = {
+                                OutlinedTextFieldDefaults.ContainerBox(
+                                    enabled = true,
+                                    isError = false,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = TextFieldDefaults.colors()
+                                )
+                            }
                         )
                     }
                 )
@@ -161,7 +172,7 @@ fun AddEditCarModal(
             Button(
                 onClick = {
                     val newCar = Car(placa, modelo, chofer, activo, car?._idKit ?: "")
-                    saveCar(newCar) { onSave() }
+                    saveCar(newCar, originalPlaca) { onSave() }
                 }
             ) {
                 Text("Guardar")
@@ -184,15 +195,26 @@ fun loadCars(onSuccess: (List<Car>) -> Unit) {
     }
 }
 
-fun saveCar(car: Car, onComplete: () -> Unit) {
+fun saveCar(car: Car, originalPlaca: String, onComplete: () -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
-        val response = if (car._idKit.isEmpty()) {
-            ApiClient.apiService.createCar(car).awaitResponse()
-        } else {
-            ApiClient.apiService.updateCar(car._idKit, car).awaitResponse()
-        }
-        if (response.isSuccessful) {
-            onComplete()
+        try {
+            val response = if (car._idKit.isEmpty()) {
+                ApiClient.apiService.createCar(car).awaitResponse()
+            } else {
+                ApiClient.apiService.updateCar(originalPlaca, car).awaitResponse()
+            }
+
+            if (response.isSuccessful) {
+                withContext(Dispatchers.Main) {
+                    onComplete()
+                }
+            } else {
+                // Log error details
+                println("Save Car Error: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: Exception) {
+            // Log exception
+            println("Save Car Exception: ${e.message}")
         }
     }
 }

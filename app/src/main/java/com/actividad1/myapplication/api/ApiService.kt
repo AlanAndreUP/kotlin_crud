@@ -20,10 +20,10 @@ interface ApiService {
     @POST("unidades")
     fun createCar(@Body car: Car): Call<Car>
 
-    @PUT("unidad/:{id}")
-    fun updateCar(@Path("id") id: String, @Body car: Car): Call<Car>
+    @PUT("unidades/unidad/{placaId}")
+    fun updateCar(@Path("placaId") placaId: String, @Body car: Car): Call<Car>
 
-    @DELETE("unidades/{id}")
+    @DELETE("unidades/unidad/{id}")
     fun deleteCar(@Path("id") id: String): Call<Void>
 }
 
