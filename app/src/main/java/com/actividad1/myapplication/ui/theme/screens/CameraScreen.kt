@@ -42,9 +42,7 @@ class CameraActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         cameraPermissionRequest = registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) {
-                CameraX.initialize(this)
-            } else {
+            if (!granted) {
                 Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
             }
         }
