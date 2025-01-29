@@ -1,4 +1,5 @@
 package com.actividad1.myapplication.ui.theme.screens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,17 +19,14 @@ import androidx.compose.ui.unit.sp
 import com.actividad1.myapplication.R
 import com.actividad1.myapplication.api.ApiClient
 import com.actividad1.myapplication.api.models.LoginRequest
-import com.actividad1.myapplication.api.models.LoginResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.withContext
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess:  (String) -> Unit,
+    onLoginSuccess: (String) -> Unit,
     onLoginError: (String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
@@ -48,6 +46,7 @@ fun LoginScreen(
             contentDescription = null,
             modifier = Modifier.fillMaxWidth()
         )
+
         Text(
             text = "Inicio de sesión",
             fontFamily = FontFamily.Serif,
@@ -91,23 +90,28 @@ fun LoginScreen(
         Button(
             onClick = {
                 if (email.isEmpty() || password.isEmpty()) {
-                    errorMessage = "Por favor rellena los campos."
+                    errorMessage = "Por favor, completa todos los campos."
                 } else {
                     errorMessage = ""
-                    onLoginClick(
-                        email,
-                        password,
-                        onLoginSuccess,
-                        onLoginError,
-                        setErrorMessage = { errorMessage = it },
-                        setSuccessMessage = { successMessage = it }
+                    performLogin(
+                        email = email,
+                        password = password,
+                        onSuccess = { message ->
+                            successMessage = message
+                            onLoginSuccess(message)
+                        },
+                        onError = { error ->
+                            errorMessage = error
+                            onLoginError(error)
+                        }
                     )
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Login")
+            Text(text = "Iniciar sesión")
         }
+
         if (successMessage.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = successMessage, color = MaterialTheme.colorScheme.primary)
@@ -119,14 +123,11 @@ fun LoginScreen(
         }
     }
 }
-
-fun onLoginClick(
+fun performLogin(
     email: String,
     password: String,
     onSuccess: (String) -> Unit,
-    onError: (String) -> Unit,
-    setErrorMessage: (String) -> Unit,
-    setSuccessMessage: (String) -> Unit
+    onError: (String) -> Unit
 ) {
     val request = LoginRequest(correo = email, password = password)
 
@@ -136,18 +137,25 @@ fun onLoginClick(
 
             if (response.isSuccessful) {
                 val responseBody = response.body()?.message ?: "Respuesta vacía"
-                setSuccessMessage("Respuesta exitosa del servidor: $responseBody")
-                onSuccess(responseBody)
+                // Usamos withContext para ejecutar las actualizaciones de UI en el hilo principal
+                withContext(Dispatchers.Main) {
+                    onSuccess(responseBody)  // Llamada a onSuccess pasando el mensaje recibido
+                }
             } else {
-                setErrorMessage("Error en la solicitud. Código de error: ${response.code()}")
-                onError("Error al iniciar sesión: ${response.code()}")
+                // Si la respuesta no es exitosa, se pasa un mensaje de error
+                withContext(Dispatchers.Main) {
+                    onError("Error al iniciar sesión: ${response.code()}") // Llamada a onError
+                }
             }
         } catch (e: Exception) {
-            setErrorMessage("Excepción en la solicitud: ${e.message}")
-            onError("Error al conectar con el servidor: ${e.message}")
+            // Si ocurre una excepción, se maneja aquí
+            withContext(Dispatchers.Main) {
+                onError("Error al conectar con el servidor: ${e.message}") // Llamada a onError
+            }
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

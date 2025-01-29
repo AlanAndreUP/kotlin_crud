@@ -10,8 +10,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.actividad1.myapplication.api.models.Car
 import com.actividad1.myapplication.api.ApiClient
+import com.actividad1.myapplication.api.models.CarWithImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,7 +21,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.awaitResponse
 
 @Composable
-fun CarStockScreen() {
+fun CarStockScreen(navController: NavController) {
     var cars by remember { mutableStateOf<List<Car>>(emptyList()) }
     var showAddEditModal by remember { mutableStateOf(false) }
     var selectedCar by remember { mutableStateOf<Car?>(null) }
@@ -66,7 +68,8 @@ fun CarStockScreen() {
                 onSave = {
                     loadCars { cars = it }
                     showAddEditModal = false
-                }
+                },
+                onOpenCamera = { navController.navigate("camera") }
             )
         }
     }
@@ -101,7 +104,8 @@ fun CarItem(car: Car, onEdit: () -> Unit, onDelete: () -> Unit) {
 fun AddEditCarModal(
     car: Car?,
     onDismiss: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onOpenCamera:() -> Unit
 ) {
     var placa by remember { mutableStateOf(car?.placa ?: "") }
     var originalPlaca by remember { mutableStateOf(car?.placa ?: "") }
@@ -153,14 +157,76 @@ fun AddEditCarModal(
                 BasicTextField(
                     value = modelo,
                     onValueChange = { modelo = it },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    decorationBox = { innerTextField ->
+                        OutlinedTextFieldDefaults.DecorationBox(
+                            value = modelo,
+                            innerTextField = innerTextField,
+                            enabled = true,
+                            singleLine = true,
+                            visualTransformation = VisualTransformation.None,
+                            interactionSource = remember { MutableInteractionSource() },
+                            isError = false,
+                            label = { Text("modelo") },
+                            placeholder = null,
+                            leadingIcon = null,
+                            trailingIcon = null,
+                            prefix = null,
+                            suffix = null,
+                            supportingText = null,
+                            colors = TextFieldDefaults.outlinedTextFieldColors(),
+                            contentPadding = PaddingValues(8.dp),
+                            container = {
+                                OutlinedTextFieldDefaults.ContainerBox(
+                                    enabled = true,
+                                    isError = false,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = TextFieldDefaults.colors()
+                                )
+                            }
+                        )
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 BasicTextField(
                     value = chofer,
                     onValueChange = { chofer = it },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    decorationBox = { innerTextField ->
+                        OutlinedTextFieldDefaults.DecorationBox(
+                            value = chofer,
+                            innerTextField = innerTextField,
+                            enabled = true,
+                            singleLine = true,
+                            visualTransformation = VisualTransformation.None,
+                            interactionSource = remember { MutableInteractionSource() },
+                            isError = false,
+                            label = { Text("chofer") },
+                            placeholder = null,
+                            leadingIcon = null,
+                            trailingIcon = null,
+                            prefix = null,
+                            suffix = null,
+                            supportingText = null,
+                            colors = TextFieldDefaults.outlinedTextFieldColors(),
+                            contentPadding = PaddingValues(8.dp),
+                            container = {
+                                OutlinedTextFieldDefaults.ContainerBox(
+                                    enabled = true,
+                                    isError = false,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = TextFieldDefaults.colors()
+                                )
+                            }
+                        )
+                    }
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onOpenCamera) {
+                    Text("Abrir Cámara")
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Activo:")
@@ -172,7 +238,7 @@ fun AddEditCarModal(
             Button(
                 onClick = {
                     val newCar = Car(placa, modelo, chofer, activo, car?._idKit ?: "")
-                    saveCar(newCar, originalPlaca) { onSave() }
+                    saveCarWithImage(newCar, originalPlaca) { onSave() }
                 }
             ) {
                 Text("Guardar")
@@ -194,30 +260,22 @@ fun loadCars(onSuccess: (List<Car>) -> Unit) {
         }
     }
 }
-
-fun saveCar(car: Car, originalPlaca: String, onComplete: () -> Unit) {
+fun saveCarWithImage(car: Car, imageBase64: String, onComplete: () -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
         try {
-            val response = if (car._idKit.isEmpty()) {
-                ApiClient.apiService.createCar(car).awaitResponse()
-            } else {
-                ApiClient.apiService.updateCar(originalPlaca, car).awaitResponse()
-            }
-
+            val carWithImage = CarWithImage(car, imageBase64)
+            val response = ApiClient.apiService.saveCarWithImage(carWithImage).awaitResponse()
             if (response.isSuccessful) {
-                withContext(Dispatchers.Main) {
-                    onComplete()
-                }
+                withContext(Dispatchers.Main) { onComplete() }
             } else {
-                // Log error details
-                println("Save Car Error: ${response.code()} - ${response.message()}")
+                println("Error al guardar imagen: ${response.code()} - ${response.message()}")
             }
         } catch (e: Exception) {
-            // Log exception
-            println("Save Car Exception: ${e.message}")
+            println("Exception: ${e.message}")
         }
     }
 }
+
 
 fun deleteCar(car: Car, onComplete: () -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
