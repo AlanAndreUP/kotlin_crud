@@ -8,9 +8,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
-import androidx.camera.core.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,16 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
 import com.actividad1.myapplication.api.ApiClient
 import com.actividad1.myapplication.api.models.LoginImageRequest
 import kotlinx.coroutines.CoroutineScope
@@ -36,8 +27,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
-import java.util.concurrent.Executor
 
 @Composable
 fun CameraScreen(onImageCaptured: (String) -> Unit) {
@@ -69,7 +58,7 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
                         val responseBody = response.body()?.message ?: "Respuesta vacía"
                         // Usamos withContext para ejecutar las actualizaciones de UI en el hilo principal
                         withContext(Dispatchers.Main) {
-                            onImageCaptured(responseBody)  // Llamada a onSuccess pasando el mensaje recibido
+                            onImageCaptured(responseBody)
                         }
                     } else {
                         withContext(Dispatchers.Main) {
@@ -109,12 +98,9 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
     }
 }
 
-/**
- * Función de ayuda para codificar un Bitmap a una cadena Base64.
- */
+//Función de ayuda para codificar un Bitmap a una cadena Base64.
 fun encodeBitmapToBase64(bitmap: Bitmap): String {
     val outputStream = ByteArrayOutputStream()
-    // Se comprime la imagen a JPEG (calidad 100, ajustar si es necesario)
     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
     val byteArray = outputStream.toByteArray()
     return Base64.encodeToString(byteArray, Base64.DEFAULT)
