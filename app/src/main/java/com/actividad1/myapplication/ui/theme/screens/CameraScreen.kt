@@ -3,135 +3,119 @@ package com.actividad1.myapplication.ui.theme.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.os.Bundle
 import android.util.Base64
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.activity.result.launch
+import androidx.camera.core.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.camera.core.CameraX
+import androidx.lifecycle.LifecycleRegistry
+import com.actividad1.myapplication.api.ApiClient
+import com.actividad1.myapplication.api.models.LoginImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-
-class CameraActivity : ComponentActivity() {
-    private lateinit var cameraPermissionRequest: ActivityResultLauncher<String>
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        cameraPermissionRequest = registerForActivityResult(RequestPermission()) { granted ->
-            if (!granted) {
-                Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Solicitar permiso en tiempo de ejecución
-        if (ContextCompat.checkSelfPermission(
-                this, Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            cameraPermissionRequest.launch(Manifest.permission.CAMERA)
-        }
-    }
-}
+import java.util.concurrent.Executor
 
 @Composable
 fun CameraScreen(onImageCaptured: (String) -> Unit) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-    var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    AndroidView(
-        factory = { ctx ->
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-            val cameraView = PreviewView(ctx)
-
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
-                val preview = androidx.camera.core.Preview.Builder().build()
-                imageCapture = ImageCapture.Builder().build()
-
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-                preview.setSurfaceProvider(cameraView.surfaceProvider)
-                try {
-                    cameraProvider.unbindAll() // Liberar cámaras previamente asignadas
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        preview,
-                        imageCapture
-                    )
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error al iniciar la cámara", Toast.LENGTH_SHORT).show()
-                }
-            }, ContextCompat.getMainExecutor(ctx))
-
-            cameraView
-        },
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Button(
-        onClick = {
-            if (imageCapture != null) {
-                imageCapture?.takePicture(
-                    ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageCapturedCallback() {
-                        override fun onCaptureSuccess(image: ImageProxy) {
-                            val buffer: ByteBuffer = image.planes[0].buffer
-                            val bytes = ByteArray(buffer.capacity())
-                            buffer.get(bytes)
-                            image.close()
-
-                            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                            imageBitmap = bitmap
-                            onImageCaptured(encodeImageToBase64(bitmap))
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            Toast.makeText(context, "Error al capturar imagen", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-            } else {
-                Toast.makeText(context, "Error: Cámara no inicializada", Toast.LENGTH_SHORT).show()
-            }
+    // Launcher para solicitar el permiso de la cámara
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
         }
-    ) {
-        Text("Capturar Foto")
     }
 
-    imageBitmap?.let { bitmap ->
-        Image(bitmap = bitmap.asImageBitmap(), contentDescription = null)
+    // Launcher para abrir la cámara y obtener un thumbnail (Bitmap)
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val base64Image = encodeBitmapToBase64(bitmap)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Imagen capturada", Toast.LENGTH_SHORT).show()
+                    }
+                    val request = LoginImageRequest(base64Image)
+                    val response = ApiClient.apiService.loginByImage(request).execute()
+                    if (response.isSuccessful){
+                        val responseBody = response.body()?.message ?: "Respuesta vacía"
+                        // Usamos withContext para ejecutar las actualizaciones de UI en el hilo principal
+                        withContext(Dispatchers.Main) {
+                            onImageCaptured(responseBody)  // Llamada a onSuccess pasando el mensaje recibido
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error al iniciar sesión: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception){
+                    withContext(Dispatchers.Main){
+                        Toast.makeText(context, "Error al conectar con el servidor: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(context, "No se capturó la imagen", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Interfaz simple: un botón para tomar la foto.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = {
+            // Verifica si el permiso ya está concedido
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                cameraLauncher.launch()
+            } else {
+                // Si no está concedido, se solicita el permiso
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }) {
+            Text(text = "Tomar Foto")
+        }
     }
 }
 
-fun encodeImageToBase64(bitmap: Bitmap): String {
+/**
+ * Función de ayuda para codificar un Bitmap a una cadena Base64.
+ */
+fun encodeBitmapToBase64(bitmap: Bitmap): String {
     val outputStream = ByteArrayOutputStream()
+    // Se comprime la imagen a JPEG (calidad 100, ajustar si es necesario)
     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-    return Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
+    val byteArray = outputStream.toByteArray()
+    return Base64.encodeToString(byteArray, Base64.DEFAULT)
 }
