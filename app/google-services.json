@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "655291570018",
+    "project_id": "landing-39949",
+    "storage_bucket": "landing-39949.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655291570018:android:87a7097d6a6e6fbebbfe3b",
+        "android_client_info": {
+          "package_name": "com.actividad1.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-qdBKAl1aK3pkmdFYUrhExZNoHTJE4Io"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

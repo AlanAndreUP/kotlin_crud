@@ -74,20 +74,24 @@ fun CarStockScreen(navController: NavController) {
         }
     }
 }
-
 @Composable
 fun CarItem(car: Car, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        elevation = CardDefaults.elevatedCardElevation()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        elevation = CardDefaults.elevatedCardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Placa: ${car.placa}")
-            Text(text = "Modelo: ${car.modelo}")
-            Text(text = "Chofer: ${car.chofer}")
-            Text(text = "Activo: ${if (car.activo) "Sí" else "No"}")
+            Text(text = "Placa: ${car.placa}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Modelo: ${car.modelo}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Chofer: ${car.chofer}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Activo: ${if (car.activo) "Sí" else "No"}", style = MaterialTheme.typography.bodyMedium)
 
-            Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
                 Button(onClick = onEdit, modifier = Modifier.padding(end = 8.dp)) {
                     Text("Editar")
                 }
@@ -118,116 +122,38 @@ fun AddEditCarModal(
         title = { Text(text = if (car == null) "Agregar Carro" else "Editar Carro") },
         text = {
             Column {
-                BasicTextField(
+                OutlinedTextField(
                     value = placa,
                     onValueChange = { placa = it },
+                    label = { Text("Placa") },
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    decorationBox = { innerTextField ->
-                        OutlinedTextFieldDefaults.DecorationBox(
-                            value = placa,
-                            innerTextField = innerTextField,
-                            enabled = true,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = remember { MutableInteractionSource() },
-                            isError = false,
-                            label = { Text("Placa") },
-                            placeholder = null,
-                            leadingIcon = null,
-                            trailingIcon = null,
-                            prefix = null,
-                            suffix = null,
-                            supportingText = null,
-                            colors = TextFieldDefaults.outlinedTextFieldColors(),
-                            contentPadding = PaddingValues(8.dp),
-                            container = {
-                                OutlinedTextFieldDefaults.ContainerBox(
-                                    enabled = true,
-                                    isError = false,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = TextFieldDefaults.colors()
-                                )
-                            }
-                        )
-                    }
+                    singleLine = true
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
-                BasicTextField(
+
+                OutlinedTextField(
                     value = modelo,
                     onValueChange = { modelo = it },
+                    label = { Text("Modelo") },
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    decorationBox = { innerTextField ->
-                        OutlinedTextFieldDefaults.DecorationBox(
-                            value = modelo,
-                            innerTextField = innerTextField,
-                            enabled = true,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = remember { MutableInteractionSource() },
-                            isError = false,
-                            label = { Text("modelo") },
-                            placeholder = null,
-                            leadingIcon = null,
-                            trailingIcon = null,
-                            prefix = null,
-                            suffix = null,
-                            supportingText = null,
-                            colors = TextFieldDefaults.outlinedTextFieldColors(),
-                            contentPadding = PaddingValues(8.dp),
-                            container = {
-                                OutlinedTextFieldDefaults.ContainerBox(
-                                    enabled = true,
-                                    isError = false,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = TextFieldDefaults.colors()
-                                )
-                            }
-                        )
-                    }
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                BasicTextField(
+
+                OutlinedTextField(
                     value = chofer,
                     onValueChange = { chofer = it },
+                    label = { Text("Chofer") },
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    decorationBox = { innerTextField ->
-                        OutlinedTextFieldDefaults.DecorationBox(
-                            value = chofer,
-                            innerTextField = innerTextField,
-                            enabled = true,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = remember { MutableInteractionSource() },
-                            isError = false,
-                            label = { Text("chofer") },
-                            placeholder = null,
-                            leadingIcon = null,
-                            trailingIcon = null,
-                            prefix = null,
-                            suffix = null,
-                            supportingText = null,
-                            colors = TextFieldDefaults.outlinedTextFieldColors(),
-                            contentPadding = PaddingValues(8.dp),
-                            container = {
-                                OutlinedTextFieldDefaults.ContainerBox(
-                                    enabled = true,
-                                    isError = false,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = TextFieldDefaults.colors()
-                                )
-                            }
-                        )
-                    }
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Button(onClick = onOpenCamera) {
                     Text("Abrir Cámara")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Activo:")
                     Checkbox(checked = activo, onCheckedChange = { activo = it })
@@ -239,7 +165,8 @@ fun AddEditCarModal(
                 onClick = {
                     val newCar = Car(placa, modelo, chofer, activo, car?._idKit ?: "")
                     saveCarWithImage(newCar, originalPlaca) { onSave() }
-                }
+                },
+                enabled = placa.isNotBlank() && modelo.isNotBlank() && chofer.isNotBlank()
             ) {
                 Text("Guardar")
             }

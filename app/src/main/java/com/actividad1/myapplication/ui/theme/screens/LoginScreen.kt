@@ -23,7 +23,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 @Composable
 fun LoginScreen(
     onLoginSuccess: (String) -> Unit,
@@ -37,55 +36,51 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.img),
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth()
-        )
 
         Text(
-            text = "Inicio de sesión",
+            text = "Bienvenido",
             fontFamily = FontFamily.Serif,
-            fontSize = 30.sp,
+            fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(8.dp)
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Correo electrónico") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
-            )
+            ),
+            shape = MaterialTheme.shapes.medium
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
-            )
+            ),
+            shape = MaterialTheme.shapes.medium
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
@@ -107,22 +102,34 @@ fun LoginScreen(
                     )
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = MaterialTheme.shapes.medium
         ) {
             Text(text = "Iniciar sesión")
         }
 
         if (successMessage.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = successMessage, color = MaterialTheme.colorScheme.primary)
+            Text(
+                text = successMessage,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
 
         if (errorMessage.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
     }
 }
+
 fun performLogin(
     email: String,
     password: String,
@@ -137,25 +144,21 @@ fun performLogin(
 
             if (response.isSuccessful) {
                 val responseBody = response.body()?.message ?: "Respuesta vacía"
-                // Usamos withContext para ejecutar las actualizaciones de UI en el hilo principal
                 withContext(Dispatchers.Main) {
-                    onSuccess(responseBody)  // Llamada a onSuccess pasando el mensaje recibido
+                    onSuccess(responseBody)
                 }
             } else {
-                // Si la respuesta no es exitosa, se pasa un mensaje de error
                 withContext(Dispatchers.Main) {
-                    onError("Error al iniciar sesión: ${response.code()}") // Llamada a onError
+                    onError("Error al iniciar sesión: ${response.code()}")
                 }
             }
         } catch (e: Exception) {
-            // Si ocurre una excepción, se maneja aquí
             withContext(Dispatchers.Main) {
-                onError("Error al conectar con el servidor: ${e.message}") // Llamada a onError
+                onError("Error al conectar con el servidor: ${e.message}")
             }
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

@@ -32,7 +32,6 @@ import java.io.ByteArrayOutputStream
 fun CameraScreen(onImageCaptured: (String) -> Unit) {
     val context = LocalContext.current
 
-    // Launcher para solicitar el permiso de la cámara
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -41,7 +40,6 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
         }
     }
 
-    // Launcher para abrir la cámara y obtener un thumbnail (Bitmap)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -56,7 +54,7 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
                     val response = ApiClient.apiService.loginByImage(request).execute()
                     if (response.isSuccessful){
                         val responseBody = response.body()?.message ?: "Respuesta vacía"
-                        // Usamos withContext para ejecutar las actualizaciones de UI en el hilo principal
+
                         withContext(Dispatchers.Main) {
                             onImageCaptured(responseBody)
                         }
@@ -76,7 +74,7 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
         }
     }
 
-    // Interfaz simple: un botón para tomar la foto.
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -85,11 +83,11 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(onClick = {
-            // Verifica si el permiso ya está concedido
+
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 cameraLauncher.launch()
             } else {
-                // Si no está concedido, se solicita el permiso
+
                 permissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }) {
@@ -98,7 +96,6 @@ fun CameraScreen(onImageCaptured: (String) -> Unit) {
     }
 }
 
-//Función de ayuda para codificar un Bitmap a una cadena Base64.
 fun encodeBitmapToBase64(bitmap: Bitmap): String {
     val outputStream = ByteArrayOutputStream()
     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
